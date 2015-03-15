@@ -1,12 +1,13 @@
 # script to set data for sim_towers_v13-2
-shape_file_tower = './Shapefile_2015_01/Towers_NGCP_with_synthetic_attributes_WGS84.shp'
-shape_file_line = './Shapefile_2015_01/Lines_NGCP_with_synthetic_attributes_WGS84.shp'
-dir_wind_timeseries = './scenario50yr'
+pdir = '/Users/hyeuk/Project/infrastructure/transmission'
+shape_file_tower = pdir + '/Shapefile_2015_01/Towers_NGCP_with_synthetic_attributes_WGS84.shp'
+shape_file_line = pdir + '/Shapefile_2015_01/Lines_NGCP_with_synthetic_attributes_WGS84.shp'
+dir_wind_timeseries = pdir + '/scenario50yr'
 
-file_frag = 'fragility_dummy.csv'
-file_cond_pc = 'cond_collapse_prob_dummy.csv'
-file_design_value = 'design_value.csv'
-file_terrain_height = 'terrain_height_multiplier.csv'
+file_frag = pdir + '/fragility_dummy.csv'
+file_cond_pc = pdir + '/cond_collapse_prob_dummy.csv'
+file_design_value = pdir + '/design_value.csv'
+file_terrain_height = pdir + '/terrain_height_multiplier.csv'
 
 flag_strainer = ['Strainer','dummy'] # consider strainer 
 
