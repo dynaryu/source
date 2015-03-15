@@ -43,10 +43,11 @@ from read import (read_frag, read_cond_prob, read_tower_GIS_information,
                  read_velocity_profile)
 
 #import compute
-from compute import (Event, cal_collapse_of_towers_analytical, 
+from compute import (cal_collapse_of_towers_analytical,
     cal_collapse_of_towers_mc, cal_exp_std)
 
 from class_Tower import Tower
+from class_Event import Event
 
 ###############################################################################
 # main procedure
@@ -54,7 +55,7 @@ from class_Tower import Tower
 
 def main(shape_file_tower, shape_file_line, dir_wind_timeseries, 
     file_frag, file_cond_pc, file_design_value, file_terrain_height, 
-    flag_strainer=None, flag_save =None, nsims=100):
+    flag_strainer=None, flag_save=None, dir_output=None, nsims=100):
 
 #unq_itime = None #np.array([900]) # or None
 #unq_itime = np.array([22855.0]) # or 502 
@@ -96,7 +97,7 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
             event, fid2name, ds_list)       
         if flag_save:
             for (ds, _) in ds_list:
-                csv_file = "./pc_line_" + ds + '_' + line.replace(' - ','_') + ".csv"
+                csv_file = dir_output + "/pc_line_" + ds + '_' + line.replace(' - ','_') + ".csv"
                 pc_collapse[line][ds].to_csv(csv_file)
             
     print "Analytical calculation is completed"
@@ -122,15 +123,15 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
         summary_line[line]= cal_exp_std(tf_sim[line], ds_list, idx_time)
 
         if flag_save:
+
             for (ds, _) in ds_list:           
-                npy_file = "./tf_line_mc_" + ds + '_' + line.replace(' - ','_') + ".npy"
+                npy_file = dir_output + "/tf_line_mc_" + ds + '_' + line.replace(' - ','_') + ".npy"
                 np.save(npy_file, tf_sim[line][ds])
 
-                csv_file = "./pc_line_mc_" + ds + '_' + line.replace(' - ','_') + ".csv"
+                csv_file = dir_output + "/pc_line_mc_" + ds + '_' + line.replace(' - ','_') + ".csv"
                 prob_sim[line][ds].to_csv(csv_file)
 
-                csv_file = "./summary_mc_" + ds + '_' + line.replace(' - ','_') + ".csv"
+                csv_file = dir_output + "/summary_mc_" + ds + '_' + line.replace(' - ','_') + ".csv"
                 summary_line[line][ds].to_csv(csv_file)
-
 
     print "MC calculation is completed"
