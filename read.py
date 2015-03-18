@@ -12,6 +12,7 @@ import numpy as np
 import shapefile
 from StringIO import StringIO
 import matplotlib.pyplot as plt
+from scipy.stats import lognorm
 
 def read_terrain_height_multiplier(file_):
     """read terrain height multiplier (ASNZ 1170.2:2011 Table 4.1)
@@ -41,18 +42,7 @@ def read_terrain_height_multiplier(file_):
 
 def read_design_value(file_):
     """read design values by line
-
-    >>> txt = '''ConstType, damage, index, function, param0, param1
-    ... Unknown, minor, 1, lognorm, 0.85, 0.05'''
-    ... Unknown, collpase, 2, lognorm, 1.02, 0.05'''
-    >>> data = read_collapse_frag(StringIO(txt))
-    >>> data
-    {'Unknown': {'collapse': {'function': 'lognorm',
-       'param0': 1.02,
-       'param1': 0.05},
-      'minor': {'function': 'lognorm', 'param0': 0.85, 'param1': 0.05}}}
     """
-
     data = pd.read_csv(file_, skipinitialspace=1)
     design_value = {}
     for line in data.iterrows():
@@ -66,7 +56,7 @@ def read_design_value(file_):
 
     return (sel_lines, design_value)
 
-def read_frag(file_):
+def read_frag(file_, flag_plot=None):
     """read collapse fragility parameter values
 
     >>> txt = '''ConstType, damage, index, function, param0, param1
@@ -81,21 +71,68 @@ def read_frag(file_):
     """
 
     data = pd.read_csv(file_, skipinitialspace=1)
-    frag = {}
-    for line in data.iterrows():
-        ctype, ds, idx, func, param0, param1 = [ line[1][x] for x in 
-        ['ConstType', 'damage', 'index', 'function', 'param0', 'param1']]
-        frag.setdefault(ctype, {}).setdefault(ds,{})['function'] = func
-        frag.setdefault(ctype, {}).setdefault(ds,{})['idx'] = idx
-        frag.setdefault(ctype, {}).setdefault(ds,{})['param0'] = param0
-        frag.setdefault(ctype, {}).setdefault(ds,{})['param1'] = param1
 
-    ds_list = [(x, frag[frag.keys()[0]][x]['idx']) 
-               for x in frag[frag.keys()[0]].keys()]
+    frag = {}
+    for ttype in data['tower type'].unique():
+        for func in data['function'].unique():
+            idx = (data['tower type'] == ttype) & (data['function'] == func)
+            dev0_ = data['dev0'].ix[idx].unique()
+            dev1_ = data['dev1'].ix[idx].unique()
+            dev_ = np.sort(np.union1d(dev0_,dev1_))
+
+            frag.setdefault(ttype, {}).setdefault(func,{})['dev_angle'] = dev_
+
+            for (j, val) in enumerate(dev0_):
+
+                idx2 = np.where(idx & (data['dev0'] == val))[0]
+
+                for k in idx2:
+                    ds_ = data.ix[k]['damage']
+                    idx_ = data.ix[k]['index']
+                    cdf_ = data.ix[k]['cdf']
+                    param0_ = data.ix[k]['param0']
+                    param1_ = data.ix[k]['param1']
+
+                    # dev_angle (0, 5, 15, 30, 360) <= tower_angle 0.0 => index
+                    # angle is less than 360. if 360 then 0.
+                    frag[ttype][func].setdefault(j+1,{}).setdefault(ds_,{})['idx'] = idx_
+                    frag[ttype][func][j+1][ds_]['param0'] = param0_
+                    frag[ttype][func][j+1][ds_]['param1'] = param1_
+                    frag[ttype][func][j+1][ds_]['cdf'] = cdf_
+
+    ds_list = [(x, frag[ttype][func][1][x]['idx']) 
+              for x in frag[ttype][func][1].keys()]
+
     ds_list.sort(key=lambda tup:tup[1]) # sort by ids
     #ds_list = [('minor', 1), ('collapse', 2)]
 
     nds = len(ds_list)
+
+    if flag_plot:
+        x = np.arange(0.5, 1.5, 0.01)
+        line_style = {'minor':'--','collapse':'-'}
+
+        for ttype in frag.keys():
+            for func in frag[ttype].keys():
+                plt.figure()
+
+                for idx in frag[ttype][func].keys():
+                    try:
+                        for ds in frag[ttype][func][idx].keys():
+                            med = frag[ttype][func][idx][ds]['param0']
+                            sig = frag[ttype][func][idx][ds]['param1']
+                            y = lognorm.cdf(x, sig, scale=med)
+                            plt.plot(x,y, line_style[ds])
+                    except AttributeError:
+                        print "no"
+
+                plt.legend(['collapse','minor'],2)
+                plt.xlabel('Ratio of wind speed to adjusted design wind speed')
+                plt.ylabel('Probability of exceedance')
+                plt.title(ttype+':'+func)
+                plt.yticks(np.arange(0,1.1,0.1))
+                plt.grid(1)
+                plt.savefig(ttype +'_' + func +'.png')
 
     return (frag, ds_list, nds)
 
@@ -205,20 +242,21 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
         if (line_route_ in sel_lines):
 
             name_ = item[sel_idx['Name']] #
-            const_type_ = item[sel_idx['ConstType']]
+            ttype_ = item[sel_idx['Type']]
             funct_ = item[sel_idx['Function']]
 
             lat_ = item[sel_idx['Latitude']]
             lon_ = item[sel_idx['Longitude']]
             strong_axis_ = item[sel_idx['AxisAz']]
+            dev_angle_ = item[sel_idx['DevAngle']]
 
             designSpeed_ = design_value[line_route_]['speed']
             designSpan_ = design_value[line_route_]['span']
             terrainCat_ = design_value[line_route_]['cat']
 
-            tower[name_] = Tower(fid_, const_type_, funct_, 
+            tower[name_] = Tower(fid_, ttype_, funct_, 
                                  line_route_, designSpeed_, designSpan_, 
-                                 terrainCat_, strong_axis_)
+                                 terrainCat_, strong_axis_, dev_angle_)
 
             #print "%s, %s, %s" %(name_, tower[name_].sd, sd_)
 

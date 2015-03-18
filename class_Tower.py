@@ -7,11 +7,11 @@ class Tower(object):
     class Tower
     Tower class represent an individual transmission tower.
     """
-    def __init__(self, fid, const_type, funct, line_route, design_speed, 
-        design_span, terrain_cat, strong_axis, adj=None):
+    def __init__(self, fid, ttype, funct, line_route, design_speed, 
+        design_span, terrain_cat, strong_axis, dev_angle, adj=None):
 
         self.fid = fid # integer
-        self.const_type = const_type # linkage to fragility
+        self.ttype = ttype # Lattice Tower or Steel Pole
         self.funct = funct # e.g., suspension, terminal, strainer
         self.line_route = line_route # string
         self.no_curcuit = 2 # double circuit (default value)
@@ -19,6 +19,7 @@ class Tower(object):
         self.design_span = design_span # design wind span
         self.terrain_cat = terrain_cat # Terrain Cateogry
         self.strong_axis = strong_axis # azimuth of strong axis relative to North (deg)
+        self.dev_angle = dev_angle # deviation angle
 
         # to be assigned
         self.actual_span = None # actual wind span on eith side

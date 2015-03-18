@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import stats
+from scipy.stats import lognorm
 import pandas as pd
 
 class Event(object):
@@ -33,12 +33,15 @@ class Event(object):
 
         vratio = self.wind.dir_speed.values/asset.adj_design_speed
 
-        try: 
-            for (ds, ids) in ds_list: # damage state
-                med = frag[asset.const_type][ds]['param0']
-                sig = frag[asset.const_type][ds]['param1']
+        try:
+            fragx = frag[asset.ttype][asset.funct]
+            idf = np.sum(fragx['dev_angle'] <= asset.dev_angle)
 
-                temp = stats.lognorm.cdf(vratio, sig, scale=med)
+            for (ds, ids) in ds_list: # damage state
+                med = fragx[idf][ds]['param0']
+                sig = fragx[idf][ds]['param1']
+
+                temp = lognorm.cdf(vratio, sig, scale=med)
                 pc_wind[:,ids-1] = temp # 2->1
 
         except KeyError:        
