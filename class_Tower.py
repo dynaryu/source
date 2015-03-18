@@ -8,7 +8,7 @@ class Tower(object):
     Tower class represent an individual transmission tower.
     """
     def __init__(self, fid, const_type, funct, line_route, design_speed, 
-        design_span, terrain_cat, adj=None):
+        design_span, terrain_cat, strong_axis, adj=None):
 
         self.fid = fid # integer
         self.const_type = const_type # linkage to fragility
@@ -18,6 +18,7 @@ class Tower(object):
         self.design_speed = design_speed # design wind speed
         self.design_span = design_span # design wind span
         self.terrain_cat = terrain_cat # Terrain Cateogry
+        self.strong_axis = strong_axis # azimuth of strong axis relative to North (deg)
 
         # to be assigned
         self.actual_span = None # actual wind span on eith side
@@ -27,9 +28,6 @@ class Tower(object):
         self.max_no_adj_towers = None # 
         self.cond_pc_adj = None # dict ~ cal_cond_pc_adj
         self.cond_pc_adj_mc = {'rel_idx': None, 'cum_prob': None} # ~ cal_cond_pc_adj
-
-        # FIXME
-        self.t0 = 0.0 # conductor angle relative to North
 
     def calc_adj_collapse_wind_speed(self, terrain_height):
         """

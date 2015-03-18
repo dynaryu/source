@@ -210,6 +210,7 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
 
             lat_ = item[sel_idx['Latitude']]
             lon_ = item[sel_idx['Longitude']]
+            strong_axis_ = item[sel_idx['AxisAz']]
 
             designSpeed_ = design_value[line_route_]['speed']
             designSpan_ = design_value[line_route_]['span']
@@ -217,7 +218,7 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
 
             tower[name_] = Tower(fid_, const_type_, funct_, 
                                  line_route_, designSpeed_, designSpan_, 
-                                 terrainCat_)
+                                 terrainCat_, strong_axis_)
 
             #print "%s, %s, %s" %(name_, tower[name_].sd, sd_)
 
@@ -425,7 +426,22 @@ def check_shape_files_tower_line(shape_file_tower, shape_file_line):
 
     return (fid, name, line_route)
 
+def dir_wind_speed(speed, bearing, t0):
 
+    # angle between wind direction and tower conductor
+    phi = np.abs(bearing-t0)
+
+    tf = (phi <= np.pi/4) | (phi > np.pi/4*7) | ((phi > np.pi/4*3) & 
+        (phi <= np.pi/4*5))
+
+    cos_ = abs(np.cos(np.pi/4.0-phi))
+    sin_ = abs(np.sin(np.pi/4.0-phi))
+
+    adj = speed*np.max(np.vstack((cos_, sin_)), axis=0)
+
+    dir_speed = np.where(tf,adj,speed) # adj if true, otherwise speed 
+
+    return dir_speed
 
 def read_velocity_profile(Wind, dir_wind_timeseries, tower):
     """
@@ -451,20 +467,12 @@ def read_velocity_profile(Wind, dir_wind_timeseries, tower):
                 usecols=[0,3,6],names=['','','','speed','','','bearing',''])
 
             speed = data['speed'].values
-            bearing = data['bearing'].values
+            bearing = np.deg2rad(data['bearing'].values) # degree
 
-            t0 = tower[name].t0
+            # angle of conductor relative to NS
+            t0 = np.deg2rad(tower[name].strong_axis) - np.pi/2.0 
 
-            phi = np.abs(bearing-t0)
-
-            tf = (phi <= np.pi/4) | (phi > np.pi/4*7) | ((phi > np.pi/4*3) & (phi <= np.pi/4*5))
-
-            cos_ = abs(np.cos(np.pi/4.0-phi))
-            sin_ = abs(np.sin(np.pi/4.0-phi))
-
-            adj = speed*np.max(np.vstack((cos_, sin_)), axis=0)
-
-            dir_speed = np.where(tf,adj,speed) # adj if true, otherwise speed 
+            dir_speed = dir_wind_speed(speed, bearing, t0)
 
             #data['EW'] = pd.Series(speed*np.cos(bearing+np.pi/2.0), 
             #             index=data.index) # x coord
