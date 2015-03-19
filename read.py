@@ -346,11 +346,11 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
 
             # compute actual wind span
             if j == 1:
-                val = 0.5*dist_forward[j-1]
+                val = 0.5*dist_forward[0]
             elif j == ntower_sel:
                 val = 0.5*dist_forward[ntower_sel-2]
             else:
-                val = 0.5*(dist_forward[j-1]+dist_forward[j])
+                val = 0.5*(dist_forward[j-2]+dist_forward[j-1])
 
             tower[name_].actual_span = val
             tower[name_].calc_adj_collapse_wind_speed(terrain_height)
