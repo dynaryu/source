@@ -136,6 +136,6 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
                 est_ntower[ds].to_csv(csv_file)
 
                 npy_file = dir_output + "/prob_ntower_" + ds + '_' + line.replace(' - ','_') + ".npy"
-                np.save(npy_file, prob_sim[ds])
+                np.save(npy_file, prob_ntower[ds])
 
     print "MC calculation is completed"
