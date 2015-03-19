@@ -12,8 +12,9 @@ functions to compute collapse probability of tranmission towers
 
 import numpy as np
 import pandas as pd
+from scipy.stats import itemfreq
 
-def cal_collapse_of_towers_analytical(list_fid, event, fid2name, ds_list):
+def cal_collapse_of_towers_analytical(list_fid, event, fid2name, ds_list, idx_time, ntime):
     """
     calculate collapse of towers analytically
 
@@ -25,8 +26,6 @@ def cal_collapse_of_towers_analytical(list_fid, event, fid2name, ds_list):
     """
 
     ntower = len(list_fid)
-    idx_time = event[event.keys()[0]].wind.index
-    ntime = len(idx_time)
     cds_list = [x[0] for x in ds_list] # only string
     cds_list.remove('collapse') # non-collapse
 
@@ -65,11 +64,9 @@ def cal_collapse_of_towers_analytical(list_fid, event, fid2name, ds_list):
     return prob
 
 
-def cal_collapse_of_towers_mc(list_fid, event, fid2name, ds_list, nsims):
+def cal_collapse_of_towers_mc(list_fid, event, fid2name, ds_list, nsims, idx_time, ntime):
 
     ntower = len(list_fid)
-    idx_time = event[event.keys()[0]].wind.index
-    ntime = len(idx_time)
     cds_list = ds_list[:]
     cds_list.reverse() # [(collapse, 2), (minor, 1)]
     #cds_list = [x[0] for x in ds_list] # only string
@@ -163,7 +160,8 @@ def cal_exp_std(tf_sim_line, ds_list, idx_time):
     tf_collapse_sim.shape = (ntowers, nsim, ntime)
     """
 
-    summary = {}
+    est_ntower = {}
+    prob_ntower = {}
 
     for ds in tf_sim_line.keys():
 
@@ -176,21 +174,19 @@ def cal_exp_std(tf_sim_line, ds_list, idx_time):
         no_ds_acr_towers = np.sum(tf_sim_line[ds],axis=0) #(nsims, ntime)
         no_freq = np.zeros((ntime, ntowers+1)) # (ntime, ntowers)
 
-    #from scipy.stats import itemfreq
-    #In [88]: freq_a = itemfreq(n_a)
-
         for i in range(ntime):
-            for j in range(ntowers+1):
-                no_freq[i, j] = np.sum(no_ds_acr_towers[:, i] == j)
+            val = itemfreq(no_ds_acr_towers[:, i]) # (value, freq)
+            no_freq[i, [int(x) for x in val[:,0]]] = val[:,1]
 
         prob = no_freq / float(nsims) # (ntime, ntowers)
 
-        exp_no = np.dot(prob,x_)
+        exp_ntower = np.dot(prob,x_)
+        std_ntower = np.sqrt(np.dot(prob,x2_) - 
+                          np.power(exp_ntower,2))
 
-        std_no = np.power(np.dot(prob,x2_) - 
-                          np.power(exp_no,2),0.5)
-
-        summary[ds] = pd.DataFrame(np.hstack((exp_no, std_no)), 
+        est_ntower[ds] = pd.DataFrame(np.hstack((exp_ntower, std_ntower)), 
             columns = ['mean', 'std'], index= idx_time)
 
-    return summary
+        prob_ntower[ds] = prob
+
+    return (est_ntower, prob_ntower)
