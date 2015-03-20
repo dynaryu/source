@@ -46,11 +46,12 @@ def read_design_value(file_):
     data = pd.read_csv(file_, skipinitialspace=1)
     design_value = {}
     for line in data.iterrows():
-        lineroute_, speed_, span_, cat_ = [ line[1][x] for x in 
-        ['lineroute', 'design wind speed', 'design wind span', 'terrain category']]
+        lineroute_, speed_, span_, cat_, level_ = [ line[1][x] for x in 
+        ['lineroute', 'design wind speed', 'design wind span', 'terrain category', 'design level']]
         design_value.setdefault(lineroute_, {})['speed'] = speed_
         design_value.setdefault(lineroute_, {})['span'] = span_
         design_value.setdefault(lineroute_, {})['cat'] = cat_
+        design_value.setdefault(lineroute_, {})['level'] = level_
 
     sel_lines = design_value.keys()
 
@@ -172,19 +173,23 @@ def read_cond_prob(file_):
       (-1, 0, 1, 2): 0.025,
       (0, 1): 0.075}}
     """
-    
+
     data = pd.read_csv(file_, skipinitialspace=1)
     cond_pc = {}
     for line in data.iterrows():
-        func, pb, n0, n1 = [ line[1][x] for x in 
-                           ['FunctionType', 'probability', 'start', 'end']]
+        func, cls_str, thr, pb, n0, n1 = [ line[1][x] for x in 
+                           ['FunctionType', 'class', 'threshold', 'probability', 'start', 'end']]
         list_ = range(int(n0), int(n1)+1)
-        cond_pc.setdefault(func, {}).setdefault('prob',{})[tuple(list_)] = float(pb)
+        cond_pc.setdefault(func,{})['threshold'] = thr
+        cond_pc[func].setdefault(cls_str,{}).setdefault('prob',{})[tuple(list_)] = float(pb)
 
     for func in cond_pc.keys():
-        max_no_adj_towers = np.max(np.abs([j for k in cond_pc[func]['prob'].keys() 
+        cls_str = cond_pc[func].keys()
+        cls_str.remove('threshold')
+        for cls in cls_str:    
+            max_no_adj_towers = np.max(np.abs([j for k in cond_pc[func][cls]['prob'].keys() 
                             for j in k]))
-        cond_pc[func]['max_adj'] = max_no_adj_towers
+            cond_pc[func][cls]['max_adj'] = max_no_adj_towers
 
     return cond_pc 
 
@@ -225,7 +230,7 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
 
     sel_keys = ['Type', 'Name', 'Latitude', 'Longitude', 'DevAngle', 
                 'AxisAz', 'Mun', 'Barangay', 'ConstType', 'Function', 
-                'LineRoute']
+                'LineRoute', 'Height']
  
     sel_idx = {}
     for str_ in sel_keys:
@@ -249,14 +254,16 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
             lon_ = item[sel_idx['Longitude']]
             strong_axis_ = item[sel_idx['AxisAz']]
             dev_angle_ = item[sel_idx['DevAngle']]
+            height_ = float(item[sel_idx['Height']])
 
             designSpeed_ = design_value[line_route_]['speed']
             designSpan_ = design_value[line_route_]['span']
             terrainCat_ = design_value[line_route_]['cat']
+            designLevel_ = design_value[line_route_]['level']
 
             tower[name_] = Tower(fid_, ttype_, funct_, 
-                                 line_route_, designSpeed_, designSpan_, 
-                                 terrainCat_, strong_axis_, dev_angle_)
+                                 line_route_, designSpeed_, designSpan_, designLevel_,  
+                                 terrainCat_, strong_axis_, dev_angle_, height_)
 
             #print "%s, %s, %s" %(name_, tower[name_].sd, sd_)
 

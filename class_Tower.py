@@ -8,7 +8,7 @@ class Tower(object):
     Tower class represent an individual transmission tower.
     """
     def __init__(self, fid, ttype, funct, line_route, design_speed, 
-        design_span, terrain_cat, strong_axis, dev_angle, adj=None):
+        design_span, design_level, terrain_cat, strong_axis, dev_angle, height, adj=None):
 
         self.fid = fid # integer
         self.ttype = ttype # Lattice Tower or Steel Pole
@@ -18,8 +18,10 @@ class Tower(object):
         self.design_speed = design_speed # design wind speed
         self.design_span = design_span # design wind span
         self.terrain_cat = terrain_cat # Terrain Cateogry
+        self.design_level = design_level # design level
         self.strong_axis = strong_axis # azimuth of strong axis relative to North (deg)
         self.dev_angle = dev_angle # deviation angle
+        self.height = height
 
         # to be assigned
         self.actual_span = None # actual wind span on eith side
@@ -165,10 +167,15 @@ class Tower(object):
                         list_[i] = -1
             return list_
 
-        if self.funct in cond_pc.keys():
-            self.max_no_adj_towers = cond_pc[self.funct]['max_adj']
-        else:
-            self.max_no_adj_towers = cond_pc['Suspension']['max_adj']
+        if self.funct == 'Strainer':
+            self.max_no_adj_towers = cond_pc['Strainer'][self.design_level]['max_adj']
+
+        else: # Suspension or Terminal                
+            thr = float(cond_pc['Suspension']['threshold'])
+            if self.height > thr:
+                self.max_no_adj_towers = cond_pc['Suspension']['higher']['max_adj']
+            else:
+                self.max_no_adj_towers = cond_pc['Suspension']['lower']['max_adj']    
 
         list_left = create_list_idx(self.fid, self.max_no_adj_towers, 0)
         list_right = create_list_idx(self.fid, self.max_no_adj_towers, 1)
@@ -187,10 +194,16 @@ class Tower(object):
         P(j|i)
         """
 
-        if self.funct in cond_pc.keys():
-            cond_pc_adj_mc = copy.deepcopy(cond_pc[self.funct]['prob'])
-        else:
-            cond_pc_adj_mc = copy.deepcopy(cond_pc['Suspension']['prob'])
+        if self.funct == 'Strainer':
+            cond_pc_adj_mc = copy.deepcopy(cond_pc['Strainer'][self.design_level]['prob'])
+
+        else: # Suspension or Terminal                
+            thr = float(cond_pc['Suspension']['threshold'])
+            if self.height > thr:
+                cond_pc_adj_mc = copy.deepcopy(cond_pc['Suspension']['higher']['prob'])
+            else:
+                cond_pc_adj_mc = copy.deepcopy(cond_pc['Suspension']['lower']['prob'])
+
 
         for (i, fid) in enumerate(self.adj_list):
             j = i - self.max_no_adj_towers # convert np index to relative index 
