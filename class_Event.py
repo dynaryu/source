@@ -33,6 +33,8 @@ class Event(object):
 
         vratio = self.wind.dir_speed.values/asset.adj_design_speed
 
+        self.vratio = vratio
+
         try:
             fragx = frag[asset.ttype][asset.funct]
             idf = np.sum(fragx['dev_angle'] <= asset.dev_angle)
@@ -52,7 +54,7 @@ class Event(object):
                 
         return
 
-    def cal_pc_adj(self, asset, cond_pc):
+    def cal_pc_adj(self, asset, cond_pc): # only for analytical approach 
         """
         calculate collapse probability of jth tower due to pull by the tower
         Pc(j,i) = P(j|i)*Pc(i)

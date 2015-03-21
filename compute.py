@@ -154,6 +154,30 @@ def cal_collapse_of_towers_mc(list_fid, event, fid2name, ds_list, nsims, idx_tim
 
     return (tf_sim, prob_sim)
 
+
+def cal_exp_std_no_cascading(list_fid, event, fid2name, ds_list, nsims, idx_time, ntime):
+
+    tf_sim_line = {}
+
+    ntowers = len(list_fid)
+
+    for (ds, _) in ds_list:
+
+        tmp = np.zeros((ntowers, nsims, ntime), dtype=bool)
+
+        for i in list_fid:
+
+            isim = event[fid2name[i]].mc_wind[ds]['isim']
+            itime = event[fid2name[i]].mc_wind[ds]['itime']
+
+            tmp[list_fid.index(i), isim, itime] = True
+
+        tf_sim_line[ds] = np.copy(tmp)    
+
+    (est_ntower, prob_ntower) = cal_exp_std(tf_sim_line, ds_list, idx_time)
+
+    return (est_ntower, prob_ntower)
+
 def cal_exp_std(tf_sim_line, ds_list, idx_time):
     """
     compute mean and std of no. of ds

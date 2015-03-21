@@ -17,6 +17,9 @@ Todo:
     -. think about how to sample random numbers (spatial correlation) (v)
     -. adding additional damage state (v)
     -. adj_list by function type (v)
+    -. update cond adj each simulation/time
+    -. assigning cond (different)
+    -. with our without cascading effect (mc simulation) - priority
 """
 
 '''
@@ -44,7 +47,7 @@ from read import (read_frag, read_cond_prob, read_tower_GIS_information,
 
 #import compute
 from compute import (cal_collapse_of_towers_analytical,
-    cal_collapse_of_towers_mc, cal_exp_std)
+    cal_collapse_of_towers_mc, cal_exp_std, cal_exp_std_no_cascading)
 
 from class_Tower import Tower
 from class_Event import Event
@@ -117,6 +120,12 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
             event[fid2name[i]].cal_mc_adj(tower[fid2name[i]], nsims, ntime, 
             ds_list, nds, rv)
 
+        # compute estimated number and probability of towers without considering
+        # cascading effect    
+        (est_ntower_nc, prob_ntower_nc) = cal_exp_std_no_cascading(
+        fid_by_line[line], event, fid2name, ds_list, nsims, idx_time, ntime)    
+        
+        # compute collapse of tower considering cascading effect    
         (tf_sim, prob_sim) = (
         cal_collapse_of_towers_mc(fid_by_line[line], event, fid2name, ds_list, 
         nsims, idx_time, ntime))
@@ -126,8 +135,8 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
         if flag_save:
 
             for (ds, _) in ds_list:           
-                npy_file = dir_output + "/tf_line_mc_" + ds + '_' + line.replace(' - ','_') + ".npy"
-                np.save(npy_file, tf_sim[ds])
+                #npy_file = dir_output + "/tf_line_mc_" + ds + '_' + line.replace(' - ','_') + ".npy"
+                #np.save(npy_file, tf_sim[ds])
 
                 csv_file = dir_output + "/pc_line_mc_" + ds + '_' + line.replace(' - ','_') + ".csv"
                 prob_sim[ds].to_csv(csv_file)
@@ -137,5 +146,11 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
 
                 npy_file = dir_output + "/prob_ntower_" + ds + '_' + line.replace(' - ','_') + ".npy"
                 np.save(npy_file, prob_ntower[ds])
+
+                csv_file = dir_output + "/est_ntower_nc" + ds + '_' + line.replace(' - ','_') + ".csv"
+                est_ntower_nc[ds].to_csv(csv_file)
+
+                npy_file = dir_output + "/prob_ntower_nc" + ds + '_' + line.replace(' - ','_') + ".npy"
+                np.save(npy_file, prob_ntower_nc[ds])
 
     print "MC calculation is completed"
