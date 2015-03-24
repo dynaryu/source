@@ -72,7 +72,9 @@ class Tower(object):
             print "no. of curcuit %s is not valid: %s" %(self.fid, self.no_curcuit)    
 
         # Mz,cat(h=10m)
-        vc = self.design_speed/np.sqrt(u)*mzcat_10/mzcat_z    
+        # alpha factor to reflect conservatism on NGCP design process
+        alpha_NGCP = 1.1
+        vc = self.design_speed/np.sqrt(u)*mzcat_10/mzcat_z*alpha_NGCP
 
         self.adj_design_speed = vc
 
