@@ -5,9 +5,9 @@ shape_file_line = pdir + '/Shapefile_2015_01/Lines_NGCP_with_synthetic_attribute
 dir_wind_timeseries = pdir + '/scenario50yr'
 dir_output = pdir + '/output'
 
-file_frag = pdir + '/input/fragility_dummy.csv'
+file_frag = pdir + '/input/fragility_GA.csv'
 file_cond_pc = pdir + '/input/cond_collapse_prob_dummy.csv'
-file_design_value = pdir + '/input/design_value_dummy.csv'
+file_design_value = pdir + '/input/design_value_y50.csv'
 file_terrain_height = pdir + '/input/terrain_height_multiplier.csv'
 
 flag_strainer = ['Strainer','dummy'] # consider strainer 

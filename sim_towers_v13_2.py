@@ -71,7 +71,7 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
     # read GIS information
     (tower, sel_lines, fid_by_line, fid2name, lon, lat) = \
     read_tower_GIS_information(Tower, shape_file_tower, shape_file_line, 
-    file_design_value, file_terrain_height)
+    file_design_value)
 
     # read collapse fragility by asset type
     (frag, ds_list, nds) = read_frag(file_frag)
@@ -85,7 +85,8 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
         tower[i].cal_cond_pc_adj(cond_pc, fid2name)
 
     # read wind profile and design wind speed
-    event = read_velocity_profile(Event, dir_wind_timeseries, tower)
+    event = read_velocity_profile(Event, dir_wind_timeseries, tower, 
+        file_terrain_height)
     idx_time = event[event.keys()[0]].wind.index
     ntime = len(idx_time)
 
