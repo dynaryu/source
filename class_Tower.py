@@ -8,7 +8,8 @@ class Tower(object):
     Tower class represent an individual transmission tower.
     """
     def __init__(self, fid, ttype, funct, line_route, design_speed, 
-        design_span, design_level, terrain_cat, strong_axis, dev_angle, height, adj=None):
+        design_span, design_level, terrain_cat, strong_axis, dev_angle, height, 
+        height_z, adj=None):
 
         self.fid = fid # integer
         self.ttype = ttype # Lattice Tower or Steel Pole
@@ -22,6 +23,7 @@ class Tower(object):
         self.strong_axis = strong_axis # azimuth of strong axis relative to North (deg)
         self.dev_angle = dev_angle # deviation angle
         self.height = height
+        self.height_z = height_z # (FIXME)
 
         # to be assigned
         self.actual_span = None # actual wind span on eith side
@@ -32,7 +34,7 @@ class Tower(object):
         self.cond_pc_adj = None # dict ~ cal_cond_pc_adj
         self.cond_pc_adj_mc = {'rel_idx': None, 'cum_prob': None} # ~ cal_cond_pc_adj
 
-    def calc_adj_collapse_wind_speed(self, terrain_height):
+    def calc_adj_collapse_wind_speed(self):
         """
         calculate adjusted collapse wind speed for a tower
         Vc = Vd(h=z)/sqrt(u)*Mz,cat(h=10)/Mz,cat(h=z)
@@ -43,25 +45,8 @@ class Tower(object):
         k: 0.33 for a single, 0.5 for double circuit
         """
 
-        tc_str = 'tc' + str(self.terrain_cat) # Terrain 
-
         # k: 0.33 for a single, 0.5 for double circuit
         k_factor = {1: 0.33, 2: 0.5} 
-
-        #z = 15.4 for suspension, 12.2 for tension, 12.2 for terminal
-        z_dic = {'Suspension': 15.4, 'Strainer': 12.2, 'Terminal': 12.2}
-
-        try: 
-            z = z_dic[self.funct]
-        except KeyError:
-            print "function type of FID %s is not valid: %s" %(self.fid, self.funct)    
-
-        try: 
-            mzcat_z = np.interp(z, terrain_height['height'], terrain_height[tc_str])
-        except KeyError:
-            print "%s is not defined" %tc_str
-
-        mzcat_10 = terrain_height[tc_str][terrain_height['height'].index(10)]
 
         # calculate utilization factor
         try:
@@ -71,8 +56,8 @@ class Tower(object):
         except KeyError:
             print "no. of curcuit %s is not valid: %s" %(self.fid, self.no_curcuit)    
 
-        # Mz,cat(h=10m)
-        vc = self.design_speed/np.sqrt(u)*mzcat_10/mzcat_z    
+        self.u_val = 1.0/np.sqrt(u)
+        vc = self.design_speed/np.sqrt(u)
 
         self.adj_design_speed = vc
 

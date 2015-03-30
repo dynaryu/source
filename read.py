@@ -9,7 +9,6 @@ read
 
 import pandas as pd
 import numpy as np
-import shapefile
 from StringIO import StringIO
 import matplotlib.pyplot as plt
 from scipy.stats import lognorm
@@ -210,7 +209,7 @@ def distance(origin, destination):
     return d
 
 def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
-    file_design_value, file_terrain_height, flag_figure = None, flag_load = 1):
+    file_design_value,  flag_figure = None, flag_load = 1):
     """
     read geospational information of towers
 
@@ -223,8 +222,6 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
     (shapes_line, records_line, fields_line) = read_shape_file(shape_file_line)
 
     (sel_lines, design_value) = read_design_value(file_design_value)
-
-    terrain_height = read_terrain_height_multiplier(file_terrain_height)
 
     km2m = 1000.0
 
@@ -256,6 +253,10 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
             dev_angle_ = item[sel_idx['DevAngle']]
             height_ = float(item[sel_idx['Height']])
 
+            # FIXME
+            height_z_dic = {'Suspension': 15.4, 'Strainer': 12.2, 'Terminal': 12.2}
+            height_z_ = height_z_dic[funct_] 
+
             designSpeed_ = design_value[line_route_]['speed']
             designSpan_ = design_value[line_route_]['span']
             terrainCat_ = design_value[line_route_]['cat']
@@ -263,7 +264,7 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
 
             tower[name_] = Tower(fid_, ttype_, funct_, 
                                  line_route_, designSpeed_, designSpan_, designLevel_,  
-                                 terrainCat_, strong_axis_, dev_angle_, height_)
+                                 terrainCat_, strong_axis_, dev_angle_, height_, height_z_)
 
             #print "%s, %s, %s" %(name_, tower[name_].sd, sd_)
 
@@ -360,9 +361,7 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
                 val = 0.5*(dist_forward[j-2]+dist_forward[j-1])
 
             tower[name_].actual_span = val
-            tower[name_].calc_adj_collapse_wind_speed(terrain_height)
-
-# compute t0 (angle of conductor relative to NS) FIXME!!!
+            tower[name_].calc_adj_collapse_wind_speed()
     
     return (tower, sel_lines, fid_by_line, fid2name, lon, lat)
 
@@ -370,6 +369,9 @@ def read_shape_file(file_shape):
     """
     read shape file
     """    
+
+    import shapefile
+
     sf = shapefile.Reader(file_shape)
     shapes = sf.shapes()
     records = sf.records()
@@ -488,7 +490,24 @@ def dir_wind_speed(speed, bearing, t0):
 
     return dir_speed
 
-def read_velocity_profile(Wind, dir_wind_timeseries, tower):
+def convert_10_to_z(asset, terrain_height):
+    """
+    Mz,cat(h=10)/Mz,cat(h=z)
+    tc: terrain category (defined by line route)
+    """
+    tc_str = 'tc' + str(asset.terrain_cat) # Terrain 
+
+    try:
+        mzcat_z = np.interp(asset.height_z, terrain_height['height'], terrain_height[tc_str])
+    except KeyError:
+        print "%s is not defined" %tc_str
+
+    mzcat_10 = terrain_height[tc_str][terrain_height['height'].index(10)]
+
+    return (mzcat_z/mzcat_10)
+
+
+def read_velocity_profile(Wind, dir_wind_timeseries, tower, file_terrain_height):
     """
     read velocity time history at each tower location
 
@@ -497,6 +516,8 @@ def read_velocity_profile(Wind, dir_wind_timeseries, tower):
     """
 
     # read velocity profile for each of the towers
+
+    terrain_height = read_terrain_height_multiplier(file_terrain_height)
 
     event = {}
 
@@ -517,7 +538,13 @@ def read_velocity_profile(Wind, dir_wind_timeseries, tower):
             # angle of conductor relative to NS
             t0 = np.deg2rad(tower[name].strong_axis) - np.pi/2.0 
 
-            dir_speed = dir_wind_speed(speed, bearing, t0)
+            convert_factor = convert_10_to_z(tower[name], terrain_height)
+
+            dir_speed = convert_factor * dir_wind_speed(speed, bearing, t0)
+
+            event[name].convert_factor = convert_factor
+
+            # convert velocity at 10m to dragt height z
 
             #data['EW'] = pd.Series(speed*np.cos(bearing+np.pi/2.0), 
             #             index=data.index) # x coord
