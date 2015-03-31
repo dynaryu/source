@@ -238,8 +238,13 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
 
     if file_topo_value != None:
         topo_value = read_topo_value(file_topo_value)
+        topo_dic = {'threshold': np.array([1.05, 1.1, 1.2, 1.3, 1.45]), 
+        0: 1.0, 1: 1.1, 2: 1.2, 3: 1.3, 4: 1.45, 5: 1.6}
 
     km2m = 1000.0
+
+    # typical drag height by tower type
+    height_z_dic = {'Suspension': 15.4, 'Strainer': 12.2, 'Terminal': 12.2}
 
     sel_keys = ['Type', 'Name', 'Latitude', 'Longitude', 'DevAngle', 
                 'AxisAz', 'Mun', 'Barangay', 'ConstType', 'Function', 
@@ -270,11 +275,11 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
             height_ = float(item[sel_idx['Height']])
 
             # FIXME
-            height_z_dic = {'Suspension': 15.4, 'Strainer': 12.2, 'Terminal': 12.2}
             height_z_ = height_z_dic[funct_] 
 
             if file_topo_value != None:
-                designSpeed_ = design_value[line_route_]['speed']*topo_value[name_]
+                idx_topo = np.sum(topo_value[name_] >= topo_dic['threshold'])
+                designSpeed_ = design_value[line_route_]['speed']*topo_dic[idx_topo]
             else:
                 designSpeed_ = design_value[line_route_]['speed']               
 
