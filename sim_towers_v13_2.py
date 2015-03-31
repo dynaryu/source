@@ -58,7 +58,8 @@ from class_Event import Event
 
 def main(shape_file_tower, shape_file_line, dir_wind_timeseries, 
     file_frag, file_cond_pc, file_design_value, file_terrain_height, 
-    flag_strainer=None, flag_save=None, dir_output=None, nsims=100):
+    file_topo_value=None, flag_strainer=None, flag_save=None, 
+    dir_output=None, nsims=100):
 
 #unq_itime = None #np.array([900]) # or None
 #unq_itime = np.array([22855.0]) # or 502 
@@ -71,7 +72,7 @@ def main(shape_file_tower, shape_file_line, dir_wind_timeseries,
     # read GIS information
     (tower, sel_lines, fid_by_line, fid2name, lon, lat) = \
     read_tower_GIS_information(Tower, shape_file_tower, shape_file_line, 
-    file_design_value)
+    file_design_value, file_topo_value)
 
     # read collapse fragility by asset type
     (frag, ds_list, nds) = read_frag(file_frag)

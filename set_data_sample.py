@@ -6,8 +6,9 @@ dir_wind_timeseries = pdir + '/scenario50yr'
 dir_output = pdir + '/output'
 
 file_frag = pdir + '/input/fragility_GA.csv'
-file_cond_pc = pdir + '/input/cond_collapse_prob_dummy.csv'
-file_design_value = pdir + '/input/design_value_y50.csv'
+file_cond_pc = pdir + '/input/cond_collapse_prob_NGCP.csv'
+file_design_value = pdir + '/input/design_value_50yr.csv'
+file_topo_value = pdir + '/input/topo_value_scenario_50yr.csv'
 file_terrain_height = pdir + '/input/terrain_height_multiplier.csv'
 
 flag_strainer = ['Strainer','dummy'] # consider strainer 
@@ -22,4 +23,4 @@ if __name__ == '__main__':
     from sim_towers_v13_2 import main
     main(shape_file_tower, shape_file_line, dir_wind_timeseries, 
     file_frag, file_cond_pc, file_design_value, file_terrain_height, 
-    flag_strainer, flag_save, dir_output, nsims)
+    file_topo_value, flag_strainer, flag_save, dir_output, nsims)

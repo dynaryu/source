@@ -13,6 +13,19 @@ from StringIO import StringIO
 import matplotlib.pyplot as plt
 from scipy.stats import lognorm
 
+def read_topo_value(file_):
+    '''
+    read topograhpic multipler value 
+    '''
+    data = pd.read_csv(file_, header=0, usecols=[0,9,10],
+        names=['Name','','','','','','','','','Mh','Mhopp'])
+    data['topo'] = np.max([data['Mh'].values, data['Mhopp'].values],axis=0)
+
+    val = {}
+    for item in data['Name']:
+        val[item] = data[data['Name']==item]['topo'].values[0]
+    return val
+
 def read_terrain_height_multiplier(file_):
     """read terrain height multiplier (ASNZ 1170.2:2011 Table 4.1)
     """
@@ -209,7 +222,7 @@ def distance(origin, destination):
     return d
 
 def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
-    file_design_value,  flag_figure = None, flag_load = 1):
+    file_design_value,  file_topo_value = None, flag_figure = None, flag_load = 1):
     """
     read geospational information of towers
 
@@ -222,6 +235,9 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
     (shapes_line, records_line, fields_line) = read_shape_file(shape_file_line)
 
     (sel_lines, design_value) = read_design_value(file_design_value)
+
+    if file_topo_value != None:
+        topo_value = read_topo_value(file_topo_value)
 
     km2m = 1000.0
 
@@ -257,7 +273,11 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
             height_z_dic = {'Suspension': 15.4, 'Strainer': 12.2, 'Terminal': 12.2}
             height_z_ = height_z_dic[funct_] 
 
-            designSpeed_ = design_value[line_route_]['speed']
+            if file_topo_value != None:
+                designSpeed_ = design_value[line_route_]['speed']*topo_value[name_]
+            else:
+                designSpeed_ = design_value[line_route_]['speed']               
+
             designSpan_ = design_value[line_route_]['span']
             terrainCat_ = design_value[line_route_]['cat']
             designLevel_ = design_value[line_route_]['level']

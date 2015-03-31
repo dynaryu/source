@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 
 class Tower(object):
 
@@ -23,7 +22,7 @@ class Tower(object):
         self.strong_axis = strong_axis # azimuth of strong axis relative to North (deg)
         self.dev_angle = dev_angle # deviation angle
         self.height = height
-        self.height_z = height_z # (FIXME)
+        self.height_z = height_z # drag height (FIXME: typical value by type, but vary across towers)
 
         # to be assigned
         self.actual_span = None # actual wind span on eith side
@@ -37,11 +36,10 @@ class Tower(object):
     def calc_adj_collapse_wind_speed(self):
         """
         calculate adjusted collapse wind speed for a tower
-        Vc = Vd(h=z)/sqrt(u)*Mz,cat(h=10)/Mz,cat(h=z)
+        Vc = Vd(h=z)/sqrt(u)
         where u = 1-k(1-Sw/Sd) 
         Sw: actual wind span 
         Sd: design wind span (defined by line route)
-        tc: terrain category (defined by line route)
         k: 0.33 for a single, 0.5 for double circuit
         """
 
@@ -62,59 +60,6 @@ class Tower(object):
         self.adj_design_speed = vc
 
         return
-
-
-    def idfy_adj_list_v2(self, fid2name, cond_pc, flag_strainer=None):
-        """
-        identify list of adjacent towers which can influence on collapse
-        """
-
-        def create_list_idx(idx, nsteps, flag):
-            """
-                create list of adjacent towers in each direction (flag=+/-1)
-            """
-            
-            list_idx = []
-            for i in range(nsteps):
-                try:
-                    idx = tower[fid2name[idx]].adj[flag]
-                except KeyError:
-                    idx = -1
-                list_idx.append(idx)
-            return list_idx
-
-        def mod_list_idx(list_):
-            """
-            replace id of strain tower with -1
-            """
-            for i, item in enumerate(list_):
-
-                if item != -1:
-                    tf = False
-                    try:
-                        tf = tower[fid2name[item]].funct in flag_strainer
-                    except KeyError:
-                        print "KeyError %s" %fid2name[item]
-
-                    if tf == True:
-                        list_[i] = -1
-            return list_
-
-        try:
-            max_no_adj_towers = cond_pc[self.funct]['max_adj']
-        except KeyError:
-            max_no_adj_towers = cond_pc['Suspension']['max_adj']
-
-        list_left = create_list_idx(self.fid, max_no_adj_towers, 0)
-        list_right = create_list_idx(self.fid, max_no_adj_towers, 1)
-
-        #if flag_strainer == None:
-        self.adj_list = list_left[::-1] + [self.fid] + list_right
-        #else:
-        #    self.adj_list = (mod_list_idx(list_left)[::-1] + [self.fid] +
-        #                     mod_list_idx(list_right))
-
-        return    
 
     def idfy_adj_list(self, tower, fid2name, cond_pc, flag_strainer=None):
         """
@@ -180,81 +125,48 @@ class Tower(object):
         """
 
         if self.funct == 'Strainer':
-            cond_pc_adj_mc = copy.deepcopy(cond_pc['Strainer'][self.design_level]['prob'])
+            cond_pc_ = cond_pc['Strainer'][self.design_level]['prob']
 
         else: # Suspension or Terminal                
             thr = float(cond_pc['Suspension']['threshold'])
             if self.height > thr:
-                cond_pc_adj_mc = copy.deepcopy(cond_pc['Suspension']['higher']['prob'])
+                cond_pc_ = cond_pc['Suspension']['higher']['prob']
             else:
-                cond_pc_adj_mc = copy.deepcopy(cond_pc['Suspension']['lower']['prob'])
+                cond_pc_ = cond_pc['Suspension']['lower']['prob']
 
+        idx_m1 = np.array([i for i in range(len(self.adj_list)) 
+            if self.adj_list[i] == -1]) - self.max_no_adj_towers # rel_index
 
-        for (i, fid) in enumerate(self.adj_list):
-            j = i - self.max_no_adj_towers # convert np index to relative index 
-            if fid == -1:
-                for key_ in cond_pc_adj_mc.keys():
-                    #try: 
-                    if j in key_:
-                       cond_pc_adj_mc.pop(key_, None)
-                    #except TypeError:
-                    #    print self.fid, key_
-
-        # sort by cond. prob                
-        rel_idx, prob = [], []
-        for w in sorted(cond_pc_adj_mc, key=cond_pc_adj_mc.get):
-            rel_idx.append(w)
-            prob.append(cond_pc_adj_mc[w])
-
-        cum_prob = np.cumsum(np.array(prob))
-
-        self.cond_pc_adj_mc['rel_idx'] = rel_idx
-        self.cond_pc_adj_mc['cum_prob'] = cum_prob
-        
-        # sum by node
-        cond_pc_adj = {}
-        for key_ in cond_pc_adj_mc.keys():
-            for i in key_:
-                try:
-                    cond_pc_adj[i] += cond_pc_adj_mc[key_]
-                except KeyError:
-                    cond_pc_adj[i] = cond_pc_adj_mc[key_]
-
-        if cond_pc_adj.has_key(0) == True:
-            cond_pc_adj.pop(0)
-        
-        self.cond_pc_adj = cond_pc_adj
-
-        return
-
-
-    def cal_cond_pc_adj_v2(self, cond_pc, fid2name):
-        """
-        calculate conditional collapse probability of jth tower given ith tower
-        P(j|i)
-        """
         try:
-            cond_pc_adj_mc = copy.deepcopy(cond_pc[self.funct]['prob'])
-            max_no_adj_towers = cond_pc[self.funct]['max_adj']
-        except KeyError:
-            cond_pc_adj_mc = copy.deepcopy(cond_pc['Suspension']['prob'])
-            max_no_adj_towers = cond_pc['Suspension']['max_adj']
+            max_neg = np.max(idx_m1[idx_m1<0]) + 1
+        except ValueError:
+            max_neg = - self.max_no_adj_towers
 
-        for (i, fid) in enumerate(self.adj_list):
-            j = i - max_no_adj_towers # convert np index to relative index 
-            if fid == -1:
-                for key_ in cond_pc_adj_mc.keys():
-                    #try: 
-                    if j in key_:
-                       cond_pc_adj_mc.pop(key_, None)
-                    #except TypeError:
-                    #    print self.fid, key_
+        try:
+            min_pos = np.min(idx_m1[idx_m1>0])
+        except ValueError:
+            min_pos = self.max_no_adj_towers + 1
+
+        bound_ = set(range(max_neg, min_pos))    
+
+        cond_prob = {}
+        for item in cond_pc_.keys():
+            w = list(set(item).intersection(bound_))
+            w.sort()
+            w = tuple(w)
+            if cond_prob.has_key(w):
+                cond_prob[w] += cond_pc_[item]
+            else:
+                cond_prob[w] = cond_pc_[item] 
+
+        if cond_prob.has_key((0,)): 
+            cond_prob.pop((0,))
 
         # sort by cond. prob                
         rel_idx, prob = [], []
-        for w in sorted(cond_pc_adj_mc, key=cond_pc_adj_mc.get):
+        for w in sorted(cond_prob, key=cond_prob.get):
             rel_idx.append(w)
-            prob.append(cond_pc_adj_mc[w])
+            prob.append(cond_prob[w])
 
         cum_prob = np.cumsum(np.array(prob))
 
@@ -263,14 +175,14 @@ class Tower(object):
         
         # sum by node
         cond_pc_adj = {}
-        for key_ in cond_pc_adj_mc.keys():
+        for key_ in cond_prob.keys():
             for i in key_:
                 try:
-                    cond_pc_adj[i] += cond_pc_adj_mc[key_]
+                    cond_pc_adj[i] += cond_prob[key_]
                 except KeyError:
-                    cond_pc_adj[i] = cond_pc_adj_mc[key_]
+                    cond_pc_adj[i] = cond_prob[key_]
 
-        if cond_pc_adj.has_key(0) == True:
+        if cond_pc_adj.has_key(0):
             cond_pc_adj.pop(0)
         
         self.cond_pc_adj = cond_pc_adj
