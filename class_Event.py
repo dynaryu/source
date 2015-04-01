@@ -77,7 +77,7 @@ class Event(object):
         jtime: time index (array)
         """
 
-        if rv == None: # perfect correlation
+        if rv is None: # perfect correlation
             rv = np.random.random((nsims, ntime))
 
         # 1. determine damage state of tower due to wind

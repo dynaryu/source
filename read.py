@@ -277,7 +277,7 @@ def read_tower_GIS_information(Tower, shape_file_tower, shape_file_line,
             # FIXME
             height_z_ = height_z_dic[funct_] 
 
-            if file_topo_value != None:
+            if file_topo_value is not None:
                 idx_topo = np.sum(topo_value[name_] >= topo_dic['threshold'])
                 designSpeed_ = design_value[line_route_]['speed']*topo_dic[idx_topo]
             else:

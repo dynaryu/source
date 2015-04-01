@@ -110,7 +110,7 @@ class Tower(object):
         list_left = create_list_idx(self.fid, self.max_no_adj_towers, 0)
         list_right = create_list_idx(self.fid, self.max_no_adj_towers, 1)
 
-        if flag_strainer == None:
+        if flag_strainer is None:
             self.adj_list = list_left[::-1] + [self.fid] + list_right
         else:
             self.adj_list = (mod_list_idx(list_left)[::-1] + [self.fid] +
