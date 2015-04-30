@@ -47,7 +47,7 @@ class Event(object):
                 pc_wind[:,ids-1] = temp # 2->1
 
         except KeyError:        
-                print "fragility is not defined for %s" %asset.const_type
+                print "fragility is not defined for %s:%s" %(asset.ttype, asset.funct)
 
         self.pc_wind = pd.DataFrame(pc_wind, columns = [x[0] for x in ds_list], 
            index = self.wind.index)
